@@ -31,9 +31,9 @@ public class HelloJobConfig {
 
     @JobScope
     @Bean("helloStep")
-    public Step helloStep(Tasklet tasklet) {
+    public Step helloStep(Tasklet helloTasklet) {
         return stepBuilderFactory.get("helloStep")
-                .tasklet(tasklet)
+                .tasklet(helloTasklet)
                 .build();
     }
 
