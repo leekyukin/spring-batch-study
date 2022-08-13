@@ -1,5 +1,6 @@
 package com.jik.batchtest.job.player;
 
+import com.jik.batchtest.core.service.PlayerSalaryService;
 import com.jik.batchtest.dto.PlayerDto;
 import com.jik.batchtest.dto.PlayerSalaryDto;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,9 @@ import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.adapter.ItemProcessorAdapter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
@@ -38,17 +41,42 @@ public class FlatFileJobConfig {
 
     @JobScope
     @Bean
-    public Step flatFileStep(FlatFileItemReader<PlayerDto> playerFileItemReader) {
+    public Step flatFileStep(FlatFileItemReader<PlayerDto> playerFileItemReader,
+                             ItemProcessorAdapter<PlayerDto, PlayerSalaryDto> playerSalaryItemProcessorAdapter
+                             ) {
         return stepBuilderFactory.get("flatFileStep")
-                .<PlayerDto, PlayerDto>chunk(5)
+                .<PlayerDto, PlayerSalaryDto>chunk(5)
                 .reader(playerFileItemReader)
+                .processor(playerSalaryItemProcessorAdapter)
                 .writer(new ItemWriter<>() {
                     @Override
-                    public void write(List<? extends PlayerDto> items) throws Exception {
+                    public void write(List<? extends PlayerSalaryDto> items) throws Exception {
                         items.forEach(System.out::println);
                     }
                 })
                 .build();
+    }
+
+    // 버전 1 (이게 더 좋음, 어댑터 패턴으로 간단함)
+    @StepScope
+    @Bean
+    public ItemProcessorAdapter<PlayerDto, PlayerSalaryDto> playerSalaryItemProcessorAdapter(PlayerSalaryService playerSalaryService) {
+        ItemProcessorAdapter<PlayerDto, PlayerSalaryDto> adapter = new ItemProcessorAdapter<>();
+        adapter.setTargetObject(playerSalaryService);
+        adapter.setTargetMethod("calcSalary");
+        return adapter;
+    }
+
+    // 버전 2
+    @StepScope
+    @Bean
+    public ItemProcessor<PlayerDto, PlayerSalaryDto> playerSalaryItemProcessor(PlayerSalaryService playerSalaryService) {
+        return new ItemProcessor<PlayerDto, PlayerSalaryDto>() {
+            @Override
+            public PlayerSalaryDto process(PlayerDto item) throws Exception {
+                return playerSalaryService.calcSalary(item);
+            }
+        };
     }
 
     @StepScope
