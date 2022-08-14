@@ -64,9 +64,11 @@ public class MultiThreadJobConfig {
     }
 
     // TaskExecutor 가 일반 task 를 multiThreadTask 로 만들어준다
+    // 아래의 클레스를 하나의 Thread Pool 로 이해하면 좋다
     @Bean
     public TaskExecutor taskExecutor() {
         SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor("spring-batch-task-executor");
+        taskExecutor.setConcurrencyLimit(4);    // Thread Pool 의 개수를 4개로 제한해서 과부화가 일어나지 않게
         return taskExecutor;
     }
 
